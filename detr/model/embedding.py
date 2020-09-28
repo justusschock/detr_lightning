@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import torch
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
+
 class PositionEmbedding(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
     def __init__(self, num_pos_feats: int, ndim: int):
         super().__init__()
@@ -57,8 +58,6 @@ class PositionEmbeddingSine(PositionEmbedding):
         pos_y = torch.stack((pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4).flatten(3)
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
         return pos
-
-
 
 
 class PositionEmbeddingLearned(PositionEmbedding):

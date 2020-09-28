@@ -6,6 +6,7 @@ from detr.model.backbone import BackboneEmbedding
 from detr.model.detection import DeTr
 from detr.model.feed_forward_heads import MHAttentionMap, MaskHeadSmallConv
 
+
 class DeTrSegm(DeTr):
     def __init__(self,
         backbone: BackboneEmbedding,
@@ -25,7 +26,6 @@ class DeTrSegm(DeTr):
         hidden_dim, nheads = self.transformer.d_model, self.transformer.nhead
         self.bbox_attention = MHAttentionMap(hidden_dim, hidden_dim, nheads, dropout=0.0)
         self.mask_head = MaskHeadSmallConv(hidden_dim + nheads, [1024, 512, 256], hidden_dim)
-
 
     def forward(
         self, image_batch: torch.Tensor, mask: torch.Tensor

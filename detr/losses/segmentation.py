@@ -25,7 +25,7 @@ class SegmentationLoss(DetectionLoss):
         # upsample predictions to the target size
         if src_masks.ndim - 2 == 2:
             interp_mode = 'bilinear'
-        elif src_masks.ndim -2 == 3:
+        elif src_masks.ndim - 2 == 3:
             interp_mode = 'trilinear'
         else:
             raise RuntimeError
@@ -48,8 +48,6 @@ class SegmentationLoss(DetectionLoss):
             return self.loss_masks(outputs_class, outputs_boxes, targets, indices, num_boxes, output_masks, **kwargs)
 
         return super().get_loss(loss, outputs_class, outputs_boxes, targets, indices, num_boxes, output_masks, **kwargs)
-
-    
 
 
 def dice_loss(inputs: torch.Tensor, targets: torch.Tensor, num_boxes: int) -> torch.Tensor:

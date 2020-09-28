@@ -6,7 +6,7 @@ import torch
 from scipy.optimize import linear_sum_assignment
 
 # TODO Generalize box transforms
-from detr.utils.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
+from detr.utils.image_ops import box_cxcywh_to_xyxy, generalized_box_iou
 
 
 class HungarianMatcher(torch.nn.Module):
