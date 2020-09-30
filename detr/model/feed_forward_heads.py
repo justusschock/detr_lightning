@@ -1,7 +1,10 @@
 from typing import List, Optional
 import torch
 from torch.nn import functional as F
-import torch.nn as nn
+
+from detr.model.utils import expand
+
+__all__ = ["MultilayerPerceptron", "MaskHeadSmallConv", "MHAttentionMap"]
 
 
 class MultilayerPerceptron(torch.nn.Module):
@@ -23,7 +26,7 @@ class MultilayerPerceptron(torch.nn.Module):
         return x
 
 
-class MaskHeadSmallConv(nn.Module):
+class MaskHeadSmallConv(torch.nn.Module):
     """
     Simple convolutional head, using group norm.
     Upsampling is done using a FPN approach
@@ -66,7 +69,7 @@ class MaskHeadSmallConv(nn.Module):
     def forward(
         self, x: torch.Tensor, bbox_mask: torch.Tensor, fpns: List[torch.Tensor]
     ):
-        x = torch.cat([_expand(x, bbox_mask.shape[1]), bbox_mask.flatten(0, 1)], 1)
+        x = torch.cat([expand(x, bbox_mask.shape[1]), bbox_mask.flatten(0, 1)], 1)
 
         x = self.lay1(x)
         x = self.gn1(x)
@@ -77,7 +80,7 @@ class MaskHeadSmallConv(nn.Module):
 
         cur_fpn = self.adapter1(fpns[0])
         if cur_fpn.size(0) != x.size(0):
-            cur_fpn = _expand(cur_fpn, x.size(0) // cur_fpn.size(0))
+            cur_fpn = expand(cur_fpn, x.size(0) // cur_fpn.size(0))
         x = cur_fpn + F.interpolate(x, size=cur_fpn.shape[-2:], mode="nearest")
         x = self.lay3(x)
         x = self.gn3(x)
@@ -85,7 +88,7 @@ class MaskHeadSmallConv(nn.Module):
 
         cur_fpn = self.adapter2(fpns[1])
         if cur_fpn.size(0) != x.size(0):
-            cur_fpn = _expand(cur_fpn, x.size(0) // cur_fpn.size(0))
+            cur_fpn = expand(cur_fpn, x.size(0) // cur_fpn.size(0))
         x = cur_fpn + F.interpolate(x, size=cur_fpn.shape[-2:], mode="nearest")
         x = self.lay4(x)
         x = self.gn4(x)
@@ -93,7 +96,7 @@ class MaskHeadSmallConv(nn.Module):
 
         cur_fpn = self.adapter3(fpns[2])
         if cur_fpn.size(0) != x.size(0):
-            cur_fpn = _expand(cur_fpn, x.size(0) // cur_fpn.size(0))
+            cur_fpn = expand(cur_fpn, x.size(0) // cur_fpn.size(0))
         x = cur_fpn + F.interpolate(x, size=cur_fpn.shape[-2:], mode="nearest")
         x = self.lay5(x)
         x = self.gn5(x)
@@ -135,9 +138,9 @@ class MHAttentionMap(torch.nn.Module):
         k = F.conv2d(
             k, self.k_linear.weight.unsqueeze(-1).unsqueeze(-1), self.k_linear.bias
         )
-        qh = q.view(
-            q.shape[0], q.shape[1], self.num_heads, self.hidden_dim // self.num_heads
-        )
+        qh = q.view(q.shape[0], 1, self.num_heads, self.hidden_dim // self.num_heads)
+        # TODO: Not sure about this. Dimensions don't match here without repeat, why do they match in orig implementation
+        qh = qh.repeat(1, q.shape[1], 1, 1)
         kh = k.view(
             k.shape[0],
             self.num_heads,

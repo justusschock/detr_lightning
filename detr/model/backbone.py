@@ -9,16 +9,19 @@ from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixi
 
 from detr.model.embedding import PositionEmbedding
 
+__all__ = ["FrozenBatchNorm", "BackboneBase", "ResNetBackbone", "BackboneEmbedding"]
+
 
 class FrozenBatchNorm(torch.nn.Module):
     """
     BatchNorm2d where the batch statistics and the affine parameters are fixed.
-    Copy-paste from torchvision.misc.ops with added eps before rqsrt,
+    Copy-paste from torchvision.misc.ops with added eps before rsqrt,
     without which any other models than torchvision.models.resnet[18,34,50,101]
     produce nans.
     """
 
     def __init__(self, n: int) -> None:
+        super().__init__()
         self.register_buffer("weight", torch.ones(n))
         self.register_buffer("bias", torch.zeros(n))
         self.register_buffer("running_mean", torch.zeros(n))
@@ -55,7 +58,7 @@ class FrozenBatchNorm(torch.nn.Module):
         rv = self.running_var.reshape(*reshape)
         rm = self.running_mean.reshape(*reshape)
         eps = 1e-5
-        scale = w * (rv + eps).rqsrt()
+        scale = w * (rv + eps).rsqrt()
         bias = b - rm * scale
         return x * scale + bias
 
@@ -95,8 +98,8 @@ class BackboneBase(torch.nn.Module):
 
         for name, x in xs.items():
             mask_: torch.Tensor = F.interpolate(
-                mask[None].float(), size=x.shape[-(image_batch.ndim - 2) :]
-            ).to(torch.bool)[0]
+                mask[:, None].float(), size=x.shape[-(image_batch.ndim - 2) :]
+            ).to(torch.bool)[:, 0]
             out[name] = {"tensor": x, "mask": mask_}
 
         return out
@@ -147,4 +150,3 @@ class BackboneEmbedding(DeviceDtypeModuleMixin, torch.nn.Module):
             pos.append(self.position_embedding(x["tensor"], x["mask"]))
 
         return out_tensors, out_masks, pos
-

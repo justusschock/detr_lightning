@@ -11,6 +11,14 @@ from typing import Callable, Optional, Tuple, Union
 import torch
 import torch.nn.functional as F
 
+__all__ = [
+    "Transformer",
+    "TransformerEncoder",
+    "TransformerEncoderLayer",
+    "TransformerDecoder",
+    "TransformerDecoderLayer",
+]
+
 
 class Transformer(torch.nn.Module):
     def __init__(
@@ -79,7 +87,7 @@ class Transformer(torch.nn.Module):
             pos=pos_embed,
             query_pos=query_embed,
         )
-        return hs.transpose(1, 2), memory.permute(1, 2, 0).view(src_shape)
+        return hs, memory.permute(1, 2, 0).view(src_shape)
 
 
 class TransformerEncoder(torch.nn.Module):
@@ -162,7 +170,9 @@ class TransformerEncoderLayer(torch.nn.Module):
             attn_mask=src_mask,
             key_padding_mask=src_key_padding_mask,
             need_weights=False,
-        )
+        )[
+            0
+        ]  # output, no weights
         src = src + self.dropout1(src2)
         src = self.norm1(src)
         src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
@@ -402,4 +412,3 @@ def _get_activation_fn(activation) -> Callable:
     if activation == "glu":
         return F.glu
     raise RuntimeError(f"activation should be relu/gelu, not {activation}.")
-

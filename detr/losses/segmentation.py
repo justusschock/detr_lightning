@@ -5,12 +5,22 @@ import torch
 from torch.nn import functional as F
 from detr.losses.detection import DetectionLoss
 
+__all__ = ["SegmentationLoss", "dice_loss", "sigmoid_focal_loss"]
+
 
 class SegmentationLoss(DetectionLoss):
-
-    def loss_masks(self, outputs_class: torch.Tensor, outputs_boxes: torch.Tensor, targets: List[Dict[str, torch.Tensor]], indices, num_boxes, outputs_masks, **kwargs):
+    def loss_masks(
+        self,
+        outputs_class: torch.Tensor,
+        outputs_boxes: torch.Tensor,
+        targets: List[Dict[str, torch.Tensor]],
+        indices,
+        num_boxes,
+        outputs_masks,
+        **kwargs
+    ):
         """Compute the losses related to the masks: the focal loss and the dice loss.
-           targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
+        targets dicts must contain the key "masks" containing a tensor of dim [nb_target_boxes, h, w]
         """
 
         src_idx = self._get_src_permutation_idx(indices)
@@ -18,20 +28,24 @@ class SegmentationLoss(DetectionLoss):
 
         src_masks = outputs_masks
 
-        target_masks, _ = pad_to_max_size([t['masks'] for t in targets])
+        target_masks, _ = pad_to_max_size([t["masks"] for t in targets])
         target_masks = target_masks.to(src_masks)
 
         src_masks = src_masks[src_idx]
         # upsample predictions to the target size
         if src_masks.ndim - 2 == 2:
-            interp_mode = 'bilinear'
+            interp_mode = "bilinear"
         elif src_masks.ndim - 2 == 3:
-            interp_mode = 'trilinear'
+            interp_mode = "trilinear"
         else:
             raise RuntimeError
 
-        src_masks = interpolate(src_masks[:, None], size=target_masks.shape[2:],
-                                mode=interp_mode, align_corners=False)
+        src_masks = interpolate(
+            src_masks[:, None],
+            size=target_masks.shape[2:],
+            mode=interp_mode,
+            align_corners=False,
+        )
         src_masks = src_masks[:, 0].flatten(1)
 
         target_masks = target_masks[tgt_idx].flatten(1)
@@ -42,15 +56,44 @@ class SegmentationLoss(DetectionLoss):
         }
         return losses
 
-    def get_loss(self, loss, outputs_class, outputs_boxes, targets, indices, num_boxes, output_masks: Optional[torch.Tensor] = None, **kwargs):
+    def get_loss(
+        self,
+        loss,
+        outputs_class,
+        outputs_boxes,
+        targets,
+        indices,
+        num_boxes,
+        output_masks: Optional[torch.Tensor] = None,
+        **kwargs
+    ):
 
-        if loss == 'masks':
-            return self.loss_masks(outputs_class, outputs_boxes, targets, indices, num_boxes, output_masks, **kwargs)
+        if loss == "masks":
+            return self.loss_masks(
+                outputs_class,
+                outputs_boxes,
+                targets,
+                indices,
+                num_boxes,
+                output_masks,
+                **kwargs
+            )
 
-        return super().get_loss(loss, outputs_class, outputs_boxes, targets, indices, num_boxes, output_masks, **kwargs)
+        return super().get_loss(
+            loss,
+            outputs_class,
+            outputs_boxes,
+            targets,
+            indices,
+            num_boxes,
+            output_masks,
+            **kwargs
+        )
 
 
-def dice_loss(inputs: torch.Tensor, targets: torch.Tensor, num_boxes: int) -> torch.Tensor:
+def dice_loss(
+    inputs: torch.Tensor, targets: torch.Tensor, num_boxes: int
+) -> torch.Tensor:
     """
     Compute the DICE loss, similar to generalized IOU for masks
     Args:
@@ -68,7 +111,13 @@ def dice_loss(inputs: torch.Tensor, targets: torch.Tensor, num_boxes: int) -> to
     return loss.sum() / num_boxes
 
 
-def sigmoid_focal_loss(inputs: torch.Tensor, targets: torch.Tensor, num_boxes: int, alpha: float = 0.25, gamma: float = 2) -> torch.Tensor:
+def sigmoid_focal_loss(
+    inputs: torch.Tensor,
+    targets: torch.Tensor,
+    num_boxes: int,
+    alpha: float = 0.25,
+    gamma: float = 2,
+) -> torch.Tensor:
     """
     Loss used in RetinaNet for dense detection: https://arxiv.org/abs/1708.02002.
     Args:

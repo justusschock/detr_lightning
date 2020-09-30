@@ -1,7 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
-"""
-Transforms and data augmentation for both image + bbox.
-"""
+# Transforms and data augmentation for both image + bbox.
+
 import random
 from typing import Callable, Optional, Tuple, Union
 
@@ -85,7 +84,9 @@ def hflip(data: dict):
 
 
 def resize(
-    data: dict, size: Union[int, Tuple[int, int], Tuple[int, int, int]], max_size: Optional[int] = None
+    data: dict,
+    size: Union[int, Tuple[int, int], Tuple[int, int, int]],
+    max_size: Optional[int] = None,
 ):
     # size can be min_size (scalar) or (w, h) tuple
 
@@ -93,7 +94,7 @@ def resize(
         w, h = image_size
         if max_size is not None:
             min_original_size = float(min(image_size))
-            max_original_size = float(max(image_size)))
+            max_original_size = float(max(image_size))
             if max_original_size / min_original_size * size > max_size:
                 size = int(round(max_size * min_original_size / max_original_size))
 
@@ -125,7 +126,7 @@ def resize(
     rescaled_image = F.resize(image, size)
 
     if len(target) == 1:
-        return {'data': rescaled_image}
+        return {"data": rescaled_image}
 
     ratios = tuple(
         float(s) / float(s_orig) for s, s_orig in zip(rescaled_image.size, image.size)
@@ -153,19 +154,19 @@ def resize(
             > 0.5
         )
 
-    target['data'] = rescaled_image
+    target["data"] = rescaled_image
 
     return target
 
 
 def pad(data: dict, padding: tuple):
 
-    image = data['data']
+    image = data["data"]
     target = data.copy()
     # assumes that we only pad on the bottom right corners
     padded_image = F.pad(image, (0, 0, padding[0], padding[1]))
     if len(target) == 1:
-        return {'data': padded_image}
+        return {"data": padded_image}
     target = target.copy()
     # should we do something wrt the original size?
     target["size"] = torch.tensor(padded_image[::-1])
@@ -174,23 +175,24 @@ def pad(data: dict, padding: tuple):
             target["masks"], (0, padding[0], 0, padding[1])
         )
 
-    target['data'] = padded_image
+    target["data"] = padded_image
     return target
+
 
 class WholeSampleTransform(AbstractTransform):
     def __init__(self, augment_fn: Callable, grad: bool = False, **kwargs):
         super().__init__(grad=grad, augment_fn=augment_fn)
-        
 
     def forward(self, **data) -> dict:
         return self.aug_fn(data)
+
 
 class RandomCrop(WholeSampleTransform):
     def __init__(self, size: tuple, grad: bool = False):
         super().__init__(crop, grad, size=size)
 
     def forward(self, **data):
-        return self.augment_fn(data, T.RandomCrop.get_params(data['data'], self.size))
+        return self.augment_fn(data, T.RandomCrop.get_params(data["data"], self.size))
 
 
 class RandomSizeCrop(WholeSampleTransform):
@@ -198,9 +200,9 @@ class RandomSizeCrop(WholeSampleTransform):
         super().__init__(crop, grad, min_size=min_size, max_size=max_size)
 
     def forward(self, **data):
-        w = random.randint(self.min_size, min(data['data'].size(-1), self.max_size))
-        h = random.randint(self.min_size, min(data['data'].size(-2), self.max_size))
-        region = T.RandomCrop.get_params(data['data'], [h, w])
+        w = random.randint(self.min_size, min(data["data"].size(-1), self.max_size))
+        h = random.randint(self.min_size, min(data["data"].size(-2), self.max_size))
+        region = T.RandomCrop.get_params(data["data"], [h, w])
 
         return self.augment_fn(data, region)
 

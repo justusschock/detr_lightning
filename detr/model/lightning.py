@@ -9,13 +9,15 @@ from torch.optim.optimizer import Optimizer
 from detr.model.embedding import PositionEmbeddingLearned, PositionEmbeddingSine
 from detr.model.backbone import BackboneEmbedding, ResNetBackbone
 from detr.model.transformer import Transformer
-from detr.model.detection import DeTr
-from detr.model.segmentation import DeTrSegm
+from detr.model.detection import Detr as _Detr
+from detr.model.segmentation import DetrSegm as _DetrSegm
 from detr.losses.detection import DetectionLoss
 from detr.losses.segmentation import SegmentationLoss
 
+__all__ = ["Detr"]
 
-class TrainableDeTr(LightningModule):
+
+class Detr(LightningModule):
     def __init__(
         self,
         num_classes: int,
@@ -52,6 +54,8 @@ class TrainableDeTr(LightningModule):
         losses: Sequence = ("labels", "boxes", "cardinality"),
         eos_coeff_loss: float = 0.1,
     ) -> None:
+
+        super().__init__()
 
         self.save_hyperparameters()
         self.segmentation = segmentation
@@ -115,7 +119,7 @@ class TrainableDeTr(LightningModule):
                     )
                 weight_dict_loss.update(aux_weight_dict)
         if segmentation:
-            model = DeTrSegm(
+            model = _DetrSegm(
                 backbone_embedding,
                 transformer,
                 num_classes,
@@ -135,7 +139,7 @@ class TrainableDeTr(LightningModule):
                 num_classes, matcher, weight_dict_loss, eos_coeff_loss, losses
             )
         else:
-            model = DeTr(
+            model = _Detr(
                 backbone_embedding,
                 transformer,
                 num_classes,
@@ -184,14 +188,34 @@ class TrainableDeTr(LightningModule):
             [torch.optim.lr_scheduler.StepLR(optim, self.hparams["lr_deay_step"])],
         )
 
-    def forward(self,):
-        return self.model()
+    def forward(
+        self, image_batch: torch.Tensor, padding_mask: Optional[torch.Tensor] = None
+    ):
+        if padding_mask is None:
+            padding_mask = torch.zeros(
+                (
+                    image_batch.size(0),
+                    *image_batch.shape[2:],
+                ),
+                device=image_batch.device,
+                dtype=torch.long,
+            )
+        return self.model(image_batch, padding_mask)
 
     def training_step(
         self, batch: dict, batch_idx: int
     ) -> Union[int, Dict[str, Union[torch.Tensor, Dict[str, torch.Tensor]]]]:
 
         outputs = self.model(batch["data"], batch["padding_mask"])
+        targets = batch["label"]
+
+        for t in targets:
+            # targets must be dict with boxes (key: boxes), class labels (key: labels) and optionally masks (key: masks)
+            assert "boxes" in t
+            assert "labels" in t
+
+            if isinstance(self.loss_calculator, SegmentationLoss):
+                assert "masks" in t
 
         if self.segmentation:
             if self.aux_outputs:
@@ -217,7 +241,7 @@ class TrainableDeTr(LightningModule):
         )
 
         for k, v in losses.items():
-            self.logger.experiment.add_scalar(f'train/{k}', v)
+            self.logger.experiment.add_scalar(f"train/{k}", v)
 
         with self.loss_calculator.combine_losses(losses) as total_loss:
-            return {'loss': total_loss, **losses}
+            return {"loss": total_loss, **losses}

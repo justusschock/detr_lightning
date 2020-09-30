@@ -1,0 +1,4 @@
+scipy
+pytorch-lightning
+pycocotools
+rising

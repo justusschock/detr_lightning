@@ -8,6 +8,8 @@ from scipy.optimize import linear_sum_assignment
 # TODO Generalize box transforms
 from detr.utils.image_ops import box_cxcywh_to_xyxy, generalized_box_iou
 
+__all__ = ["HungarianMatcher"]
+
 
 class HungarianMatcher(torch.nn.Module):
     """This class computes an assignment between the targets and the predictions of the network
@@ -40,9 +42,12 @@ class HungarianMatcher(torch.nn.Module):
 
     @torch.no_grad()
     def forward(
-        self, outputs_class: torch.Tensor, outputs_boxes: torch.Tensor, targets: Dict[str, torch.Tensor]
+        self,
+        outputs_class: torch.Tensor,
+        outputs_boxes: torch.Tensor,
+        targets: Dict[str, torch.Tensor],
     ) -> List[Tuple[torch.Tensor, torch.Tensor]]:
-        """ Performs the matching
+        """Performs the matching
         Params:
             outputs: This is a dict that contains at least these entries:
                  "pred_logits": Tensor of dim [batch_size, num_queries, num_classes] with the classification logits
@@ -61,8 +66,8 @@ class HungarianMatcher(torch.nn.Module):
         bs, num_queries = outputs_class.shape[:2]
 
         # We flatten to compute the cost matrices in a batch
-        out_prob = (
-            outputs_class.flatten(0, 1).softmax(-1)
+        out_prob = outputs_class.flatten(0, 1).softmax(
+            -1
         )  # [batch_size * num_queries, num_classes]
         out_bbox = outputs_boxes.flatten(0, 1)  # [batch_size * num_queries, 4]
 
@@ -83,10 +88,11 @@ class HungarianMatcher(torch.nn.Module):
             cost_giou = -generalized_box_iou(
                 box_cxcywh_to_xyxy(out_bbox), box_cxcywh_to_xyxy(tgt_bbox)
             )
-        elif self.ndim == 3:
-            cost_giou = -generalized_box_iou(
-                box_cxcyczwhd_to_xyzxyz(out_bbox), box_cxcyczwhd_to_xyzxyz
-            )
+        # TODO: Implement this for 3D
+        # elif self.ndim == 3:
+        #     cost_giou = -generalized_box_iou(box_cxcyczwhd_to_xyzxyz(out_bbox), box_cxcyczwhd_to_xyzxyz)
+        else:
+            raise ValueError
 
         # Final cost matrix
         C = (

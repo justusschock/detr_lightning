@@ -2,13 +2,14 @@ from typing import Dict, List, Tuple, Union
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 import torch
 from torch.nn import functional as F
-
 from detr.model.backbone import BackboneEmbedding
 from detr.model.transformer import Transformer
 from detr.model.feed_forward_heads import MultilayerPerceptron
 
+__all__ = ["Detr"]
 
-class DeTr(DeviceDtypeModuleMixin, torch.nn.Module):
+
+class Detr(DeviceDtypeModuleMixin, torch.nn.Module):
     def __init__(
         self,
         backbone: BackboneEmbedding,
@@ -29,7 +30,7 @@ class DeTr(DeviceDtypeModuleMixin, torch.nn.Module):
         self.bbox_embed = MultilayerPerceptron(hidden_dim, hidden_dim, 2 * ndim, 3)
         self.query_embed = torch.nn.Embedding(num_queries, hidden_dim)
         self.input_proj = getattr(torch.nn, "Conv%dd" % ndim)(
-            backbone.num_channels, hidden_dim, kernel_size=1
+            backbone.backbone.num_channels, hidden_dim, kernel_size=1
         )
         self.backbone = backbone
         self.aux_outputs = aux_outputs
@@ -52,15 +53,17 @@ class DeTr(DeviceDtypeModuleMixin, torch.nn.Module):
         outputs_class = self.class_embed(hs)
         outputs_coord = self.bbox_embed(hs).sigmoid()
 
-        if self.aux_loss:
+        # TODO: outputs are of different shape then described in facebookresearch/detr
+        if self.aux_outputs:
             return (
                 outputs_class[-1],
                 outputs_coord[-1],
                 # auxiliary outputs
                 [
                     (aux_cls_output, aux_box_output)
-                    for aux_cls_output, aux_box_output in zip(outputs_class[:-1], outputs_coord[:-1])
+                    for aux_cls_output, aux_box_output in zip(
+                        outputs_class[:-1], outputs_coord[:-1]
+                    )
                 ],
             )
         return outputs_class[-1], outputs_coord[-1]
-

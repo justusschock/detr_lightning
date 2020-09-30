@@ -4,6 +4,8 @@ from abc import ABC, abstractmethod
 import torch
 from pytorch_lightning.utilities.device_dtype_mixin import DeviceDtypeModuleMixin
 
+__all__ = ["PositionEmbedding", "PositionEmbeddingSine", "PositionEmbeddingLearned"]
+
 
 class PositionEmbedding(DeviceDtypeModuleMixin, torch.nn.Module, ABC):
     def __init__(self, num_pos_feats: int, ndim: int):
@@ -25,7 +27,15 @@ class PositionEmbeddingSine(PositionEmbedding):
     This is a more standard version of the position embedding, very similar to the one
     used by the Attention is all you need paper, generalized to work on images.
     """
-    def __init__(self, num_pos_feats: int = 64, temperature: int = 10000, normalize: bool = False, scale: Optional[float]=None, ndim: int = 2):
+
+    def __init__(
+        self,
+        num_pos_feats: int = 64,
+        temperature: int = 10000,
+        normalize: bool = False,
+        scale: Optional[float] = None,
+        ndim: int = 2,
+    ):
         super().__init__(num_pos_feats, ndim)
 
         assert self.ndim == 2
@@ -54,8 +64,12 @@ class PositionEmbeddingSine(PositionEmbedding):
 
         pos_x = x_embed[:, :, :, None] / dim_t
         pos_y = y_embed[:, :, :, None] / dim_t
-        pos_x = torch.stack((pos_x[:, :, :, 0::2].sin(), pos_x[:, :, :, 1::2].cos()), dim=4).flatten(3)
-        pos_y = torch.stack((pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4).flatten(3)
+        pos_x = torch.stack(
+            (pos_x[:, :, :, 0::2].sin(), pos_x[:, :, :, 1::2].cos()), dim=4
+        ).flatten(3)
+        pos_y = torch.stack(
+            (pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4
+        ).flatten(3)
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
         return pos
 
@@ -69,7 +83,9 @@ class PositionEmbeddingLearned(PositionEmbedding):
         super().__init__(num_pos_feats, ndim)
 
         for idx in range(self.ndim):
-            setattr(self, "embed_dim_%d" % idx, torch.nn.Embedding(50, self.num_pos_feats))
+            setattr(
+                self, "embed_dim_%d" % idx, torch.nn.Embedding(50, self.num_pos_feats)
+            )
         self.reset_parameters()
 
     def reset_parameters(self):
