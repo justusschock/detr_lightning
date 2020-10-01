@@ -1,6 +1,13 @@
 import torch
 from torch._C import dtype
-from detr import Detr
+from detr.model import Detr
+from detr.data.dummy_dataset import DummyDetectionDataset
+from torch.utils.data import DataLoader
+import pytorch_lightning as pl
+
+
+def _collate_fn(batch):
+    return tuple(zip(*batch))
 
 
 def test_detection_forward():
@@ -8,6 +15,29 @@ def test_detection_forward():
     image = torch.randn(1, 3, 224, 224)  # Image-net shape
     out = model(image)
     return 1
+
+
+def test_detr_train(tmpdir):
+    model = Detr(num_classes=91)
+
+    train_dl = DataLoader(
+        DummyDetectionDataset(
+            img_shape=(3, 224, 224), num_boxes=1, num_classes=91, num_samples=10
+        ),
+        collate_fn=_collate_fn,
+    )
+
+    valid_dl = DataLoader(
+        DummyDetectionDataset(
+            img_shape=(3, 224, 224), num_boxes=1, num_classes=91, num_samples=10
+        ),
+        collate_fn=_collate_fn,
+    )
+
+    trainer = pl.Trainer(fast_dev_run=True, default_root_dir=tmpdir)
+    trainer.fit(model, train_dl, valid_dl)
+    return 1
+
 
 # def test_segmentation_forward():
 #     model = Detr(10, segmentation=True)
