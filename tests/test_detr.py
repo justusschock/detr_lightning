@@ -17,7 +17,7 @@ def test_detection_forward():
     return 1
 
 
-def test_detr_train(tmpdir):
+def test_detr_detection_train(tmpdir):
     model = Detr(num_classes=91)
 
     train_dl = DataLoader(
@@ -46,22 +46,22 @@ def test_detr_train(tmpdir):
 #     return 1
 
 
-# def test_detection_step():
-#     model = Detr(10)
+def test_detection_step():
+    model = Detr(10)
 
-#     batch = {
-#         "data": torch.randn(1, 3, 224, 224),  # Image-net shape
-#         "padding_mask": torch.zeros(1, 224, 224, dtype=torch.long),
-#         "label": [
-#             {
-#                 "boxes": torch.tensor([1, 5, 78, 80]),
-#                 "labels": torch.tensor([5]),
-#             }
-#         ],
-#     }
+    batch = {
+        "data": torch.randn(1, 3, 224, 224),  # Image-net shape
+        "padding_mask": torch.zeros(1, 224, 224, dtype=torch.long),
+        "label": [
+            {
+                "boxes": torch.tensor([1, 5, 78, 80]),
+                "labels": torch.tensor([5]),
+            }
+        ],
+    }
 
-#     model.training_step(batch, 1)
-#     return 1
+    model.training_step(batch, 1)
+    return 1
 
 
 # def test_segmentation_step():
