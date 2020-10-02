@@ -24,9 +24,17 @@ class DummyDetectionDataset(Dataset):
         return [min(xs), min(ys), max(xs), max(ys)]
 
     def __getitem__(self, idx):
+        batch = {}
         img = torch.rand(self.img_shape)
         boxes = torch.tensor(
-            [self._random_bbox() for _ in range(self.num_boxes)], dtype=torch.float32
-        )
+            [self._random_bbox() for _ in range(self.num_boxes)], dtype=torch.float32)
+
         labels = torch.randint(self.num_classes, (self.num_boxes,), dtype=torch.long)
-        return img, {"boxes": boxes, "labels": labels}
+
+        batch["label"] = [{"boxes": boxes}, {"labels": labels}]
+
+        batch["data"] = img
+
+        return batch
+
+
