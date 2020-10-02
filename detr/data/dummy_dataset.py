@@ -31,10 +31,11 @@ class DummyDetectionDataset(Dataset):
 
         labels = torch.randint(self.num_classes, (self.num_boxes,), dtype=torch.long)
 
-        batch["label"] = [{"boxes": boxes}, {"labels": labels}]
-
         batch["data"] = img
-
+        batch["label"] = [{"boxes": boxes}, {"labels": labels}]
         return batch
 
+# if __name__ == "__main__":
+#     ds = DummyDetectionDataset()
+#     print(ds[0])
 
