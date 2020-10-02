@@ -185,7 +185,7 @@ class Detr(LightningModule):
         )
         return (
             [optim],
-            [torch.optim.lr_scheduler.StepLR(optim, self.hparams["lr_deay_step"])],
+            [torch.optim.lr_scheduler.StepLR(optim, self.hparams["lr_decay_step"])],
         )
 
     def forward(
