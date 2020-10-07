@@ -73,7 +73,7 @@ def pad_to_max_size(
     dtype = tensor_list[0].dtype
     device = tensor_list[0].device
 
-    tensor = torch.zeros(max_size, dtype=dtype, device=device)
+    tensor = torch.zeros((*max_size), dtype=dtype, device=device)
     mask = torch.ones((max_size[0], *max_size[2:]), dtype=torch.bool, device=device)
 
     # zero padding to max size and calc padding mask (1 for each padded pixel/voxel)
